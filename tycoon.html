@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Card Tycoon</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: linear-gradient(-45deg, #1a1a2e, #16213e, #0f3460, #533483);
+    background-size: 400% 400%;
+    animation: gradientMove 15s ease infinite;
+    color: white;
+    text-align: center;
+    padding: 20px;
+}
+
+@keyframes gradientMove {
+    0% { background-position:0% 50%; }
+    50% { background-position:100% 50%; }
+    100% { background-position:0% 50%; }
+}
+
+h1 {
+    margin-bottom: 20px;
+}
+
+#gold-info {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    margin-top: 25px;
+    margin-bottom: 10px;
+}
+
+.shop-container,
+.slots-container {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.card-entry {
+    width: 180px;
+    background: white;
+    color: black;
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.card-entry img {
+    width: 150px;
+    height: 180px;
+    border-radius: 6px;
+}
+
+.owned-card {
+    background: white;
+    color: black;
+    border-radius: 10px;
+    padding: 10px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.owned-card.level2 {
+    background: #c0c0c0;
+    color: black;
+}
+
+.owned-card.level3 {
+    background: linear-gradient(
+        135deg,
+        #ffd700,
+        #ffec80,
+        #ffd700
+    );
+    color: black;
+}
+
+button {
+    margin-top: 8px;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+.buy-btn {
+    background: gold;
+}
+
+.slot {
+    width: 180px;
+    min-height: 290px;
+    background: rgba(255,255,255,0.08);
+    border: 2px dashed rgba(255,255,255,0.3);
+    border-radius: 10px;
+    padding: 10px;
+}
+
+.collect-btn {
+    background: limegreen;
+    color: white;
+    font-size: 18px;
+    padding: 12px 20px;
+}
+
+.unlock-btn {
+    background: orange;
+}
+
+</style>
+</head>
+<body>
+
+<h1>🏆 Card Tycoon</h1>
+
+<div id="gold-info">💰 Złoto: 0</div>
+
+<button class="collect-btn" onclick="collectGold()">
+💰 Zbierz złoto
+</button>
+
+<h2 class="section-title">🛒 Sklep</h2>
+<button
+onclick="refreshShop()"
+style="background:dodgerblue;color:white;">
+🔄 Odśwież sklep (20 zł)
+</button>
+<div id="shop" class="shop-container"></div>
+
+<h2 class="section-title">🏠 Twoje miejsca</h2>
+<div id="slots" class="slots-container"></div>
+
+<script>
+
+const allCards = [
+
+//PODSTAWOWE
+{
+name:"Uma",
+image:"grafiki/C1.jpg",
+rarity:"zwykla",
+price:8,
+
+income1:1,
+income2:2,
+income3:3,
+
+upgrade2Cost:16,
+upgrade3Cost:32
+},
+
+{
+name:"3Z-0P",
+image:"grafiki/C2.jpg",
+rarity:"zwykla",
+price:14,
+
+income1:2,
+income2:4,
+income3:6,
+
+upgrade2Cost:28,
+upgrade3Cost:56
+},
+
+{
+name:"Czop Kennedy",
+image:"grafiki/C3.jpg",
+rarity:"zwykla",
+price:20,
+
+income1:3,
+income2:6,
+income3:9,
+
+upgrade2Cost:40,
+upgrade3Cost:80
+},
+
+{
+name:"Marcin Stark",
+image:"grafiki/C4.jpg",
+rarity:"zwykla",
+price:26,
+
+income1:4,
+income2:8,
+income3:12,
+
+upgrade2Cost:52,
+upgrade3Cost:104
+},
+
+{
+name:"Czołgista",
+image:"grafiki/C5.jpg",
+rarity:"zwykla",
+price:32,
+
+income1:5,
+income2:10,
+income3:15,
+
+upgrade2Cost:64,
+upgrade3Cost:128
+}
+
+];
+
+let player = JSON.parse(localStorage.getItem("tycoonData"));
+
+if (!player) {
+    player = {
+        gold: 20,
+        slotsUnlocked: 1,
+        slotRarities: [
+            "zwykla",
+            "zwykla",
+            "zwykla"
+        ],
+        ownedCards: [],
+        shopCards: [],
+        lastShopRefresh: ""
+    };
+}
+
+// Naprawa starych zapisów
+if (!player.slotRarities) {
+    player.slotRarities = [
+        "zwykla",
+        "zwykla",
+        "zwykla"
+    ];
+}
+
+if (!player.ownedCards) {
+    player.ownedCards = [];
+}
+
+if (!player.shopCards) {
+    player.shopCards = [];
+}
+
+player.ownedCards.forEach(card => {
+
+    if (!card.rarity) {
+        card.rarity = "zwykla";
+    }
+
+    if (!card.level) {
+        card.level = 1;
+    }
+
+    if (!card.income1) {
+
+        if(card.name === "Uma"){
+            card.income1 = 1;
+            card.income2 = 2;
+            card.income3 = 3;
+            card.upgrade2Cost = 16;
+            card.upgrade3Cost = 32;
+        }
+
+        if(card.name === "3Z-0P"){
+            card.income1 = 2;
+            card.income2 = 4;
+            card.income3 = 6;
+            card.upgrade2Cost = 28;
+            card.upgrade3Cost = 56;
+        }
+
+        if(card.name === "Czop Kennedy"){
+            card.income1 = 3;
+            card.income2 = 6;
+            card.income3 = 9;
+            card.upgrade2Cost = 40;
+            card.upgrade3Cost = 80;
+        }
+
+        if(card.name === "Marcin Stark"){
+            card.income1 = 4;
+            card.income2 = 8;
+            card.income3 = 12;
+            card.upgrade2Cost = 52;
+            card.upgrade3Cost = 104;
+        }
+
+        if(card.name === "Czołgista"){
+            card.income1 = 5;
+            card.income2 = 10;
+            card.income3 = 15;
+            card.upgrade2Cost = 64;
+            card.upgrade3Cost = 128;
+        }
+
+    }
+
+});
+
+function savePlayer() {
+localStorage.setItem("tycoonData", JSON.stringify(player));
+}
+
+function getToday() {
+return new Date().toDateString();
+}
+
+function randomCard() {
+
+const roll = Math.random() * 100;
+
+if(roll < 45){
+    return JSON.parse(JSON.stringify(allCards[0]));
+}
+else if(roll < 70){
+    return JSON.parse(JSON.stringify(allCards[1]));
+}
+else if(roll < 85){
+    return JSON.parse(JSON.stringify(allCards[2]));
+}
+else if(roll < 95){
+    return JSON.parse(JSON.stringify(allCards[3]));
+}
+else{
+    return JSON.parse(JSON.stringify(allCards[4]));
+}
+
+}
+
+function refreshShop(){
+
+if(player.gold < 20){
+    alert("Potrzebujesz 20 złota!");
+    return;
+}
+
+if(!confirm("Odświeżyć sklep za 20 złota?")){
+    return;
+}
+
+player.gold -= 20;
+
+player.shopCards = [];
+
+for(let i=0;i<3;i++){
+    player.shopCards.push(randomCard());
+}
+
+savePlayer();
+renderAll();
+
+}
+
+function generateShop() {
+
+const today = getToday();
+
+if(player.lastShopRefresh !== today || player.shopCards.length === 0){
+
+player.shopCards = [];
+
+for(let i=0;i<3;i++){
+    player.shopCards.push(randomCard());
+}
+
+player.lastShopRefresh = today;
+savePlayer();
+}
+
+}
+
+function renderGold() {
+document.getElementById("gold-info").innerHTML =
+`💰 Złoto: ${Math.floor(player.gold)}`;
+}
+
+function renderShop() {
+
+const shop = document.getElementById("shop");
+shop.innerHTML = "";
+
+player.shopCards.forEach((card,index)=>{
+
+shop.innerHTML += `
+<div class="card-entry">
+
+<img src="${card.image}">
+
+<h3>${card.name}</h3>
+
+<div>⭐ Lvl 1</div>
+
+<div>⚪ Rzadkość: ${card.rarity}</div>
+
+<div>💰 Cena: ${card.price}</div>
+
+<div>📈 ${card.income1} zł / 6h</div>
+
+<button
+class="buy-btn"
+onclick="buyCard(${index})">
+Kup
+</button>
+
+</div>
+`;
+
+});
+
+}
+
+function getCardValue(card){
+
+if(card.level === 1){
+    return card.price;
+}
+
+if(card.level === 2){
+    return card.upgrade2Cost;
+}
+
+if(card.level === 3){
+    return card.upgrade3Cost;
+}
+
+return card.price;
+
+}
+
+function renderSlots() {
+
+const slots = document.getElementById("slots");
+slots.innerHTML = "";
+
+for(let i=0;i<3;i++){
+
+if(i < player.slotsUnlocked){
+
+const card = player.ownedCards[i];
+const slotRarity = player.slotRarities[i];
+
+if(card){
+
+    let upgradeCost = 0;
+
+if(card.level === 1){
+    upgradeCost = card.upgrade2Cost;
+}
+else if(card.level === 2){
+    upgradeCost = card.upgrade3Cost;
+}
+
+slots.innerHTML += `
+
+<div class="slot">
+
+<div class="
+owned-card
+${card.level === 2 ? 'level2' : ''}
+${card.level === 3 ? 'level3' : ''}
+">
+
+<img
+src="${card.image}"
+style="width:150px;height:180px;border-radius:6px;">
+
+<h3>${card.name}</h3>
+
+<div>⚪ Slot: ${slotRarity}</div>
+
+<div>⭐ Lvl ${card.level}</div>
+
+<div>⚪ Rzadkość: ${card.rarity}</div>
+
+<div>📈 ${card.income} zł / 6h</div>
+
+<div>💰 Aktualna wartość: ${getCardValue(card)} zł</div>
+
+<div>
+💸 Sprzedaż:
+${Math.floor(getCardValue(card)/2)} zł
+</div>
+
+${card.level < 3 ? `
+<button
+onclick="upgradeCard(${i})"
+style="background:limegreen;color:white;">
+⬆️ Ulepsz (${upgradeCost} zł)
+</button>
+` : `
+<div style="color:gold;font-weight:bold;">
+⭐ MAX LVL
+</div>
+`}
+
+<button
+onclick="sellCard(${i})"
+style="background:red;color:white;">
+Sprzedaj
+</button>
+
+</div>
+
+</div>
+`;
+
+}
+else{
+
+slots.innerHTML += `
+<div class="slot">
+
+<div class="owned-card">
+
+<h3>Puste miejsce</h3>
+
+<div>
+⚪ Slot: ${slotRarity}
+</div>
+
+</div>
+
+</div>
+`;
+}
+}
+else{
+
+let cost = i === 1 ? 10 : 25;
+
+slots.innerHTML += `
+<div class="slot">
+
+<h3>🔒 Zablokowane</h3>
+
+<p>Koszt: ${cost} złota</p>
+
+<button
+class="unlock-btn"
+onclick="unlockSlot(${i})">
+
+Odblokuj
+
+</button>
+
+</div>
+`;
+
+}
+
+}
+
+}
+
+function unlockSlot(slotIndex){
+
+const cost = slotIndex === 1 ? 10 : 25;
+
+if(player.gold < cost){
+alert("Za mało złota!");
+return;
+}
+
+player.gold -= cost;
+player.slotsUnlocked++;
+
+savePlayer();
+
+renderAll();
+
+}
+
+function buyCard(index){
+
+if(player.ownedCards.length >= player.slotsUnlocked){
+alert("Brak wolnego miejsca!");
+return;
+}
+
+const card = player.shopCards[index];
+
+if(player.gold < card.price){
+alert("Za mało złota!");
+return;
+}
+
+
+player.gold -= card.price;
+
+player.ownedCards.push({
+name: card.name,
+image: card.image,
+rarity: card.rarity,
+income: card.income1,
+
+income1: card.income1,
+income2: card.income2,
+income3: card.income3,
+
+upgrade2Cost: card.upgrade2Cost,
+upgrade3Cost: card.upgrade3Cost,
+price: card.price,
+level: 1,
+lastCollected: Date.now()
+});
+
+player.shopCards[index] = randomCard();
+
+savePlayer();
+
+renderAll();
+
+}
+
+function sellCard(slotIndex){
+
+const card = player.ownedCards[slotIndex];
+
+if(!card) return;
+
+let goldBack = 0;
+
+if(card.level === 1){
+    goldBack = Math.floor(card.price / 2);
+}
+else if(card.level === 2){
+    goldBack = Math.floor(card.upgrade2Cost / 2);
+}
+else if(card.level === 3){
+    goldBack = Math.floor(card.upgrade3Cost / 2);
+}
+
+if(confirm(
+`Sprzedać ${card.name} (Lv.${card.level}) za ${goldBack} złota?`
+)){
+
+player.gold += goldBack;
+
+player.ownedCards.splice(slotIndex,1);
+
+savePlayer();
+renderAll();
+
+}
+
+}
+
+function upgradeCard(slotIndex){
+
+const card = player.ownedCards[slotIndex];
+
+if(!card) return;
+
+let cost = 0;
+
+if(card.level === 1){
+    cost = card.upgrade2Cost;
+}
+else if(card.level === 2){
+    cost = card.upgrade3Cost;
+}
+else{
+    alert("Maksymalny poziom!");
+    return;
+}
+
+if(player.gold < cost){
+    alert("Za mało złota!");
+    return;
+}
+
+player.gold -= cost;
+
+card.level++;
+
+if(card.level === 2){
+    card.income = card.income2;
+}
+else if(card.level === 3){
+    card.income = card.income3;
+}
+
+savePlayer();
+renderAll();
+
+alert(
+`${card.name} ulepszono na poziom ${card.level}!`
+);
+
+}
+
+function collectGold(){
+
+let total = 0;
+
+player.ownedCards.forEach(card=>{
+
+const now = Date.now();
+
+const periods =
+Math.floor(
+(now - card.lastCollected) /
+(6 * 60 * 60 * 1000)
+);
+
+if(periods > 0){
+
+const earned =
+periods * card.income;
+
+total += earned;
+
+card.lastCollected +=
+periods * (6 * 60 * 60 * 1000);
+
+}
+
+});
+
+player.gold += total;
+
+if(total > 0){
+alert(`Odebrano ${total} złota!`);
+}
+else{
+alert("Karty jeszcze nic nie zarobiły.");
+}
+
+savePlayer();
+renderAll();
+
+}
+
+function renderAll(){
+
+renderGold();
+renderShop();
+renderSlots();
+
+}
+
+generateShop();
+renderAll();
+
+</script>
+
+</body>
+</html>
