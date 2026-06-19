@@ -124,8 +124,11 @@ button {
 
 <div id="gold-info">💰 Złoto: 0</div>
 
-<button class="collect-btn" onclick="collectGold()">
-💰 Zbierz złoto
+<button
+id="collect-btn"
+class="collect-btn"
+onclick="collectGold()">
+💰 Zbierz złoto (0)
 </button>
 
 <h2 class="section-title">🛒 Sklep</h2>
@@ -378,6 +381,30 @@ savePlayer();
 
 }
 
+function getCollectableGold(){
+
+let total = 0;
+
+player.ownedCards.forEach(card=>{
+
+const now = Date.now();
+
+const periods =
+Math.floor(
+(now - card.lastCollected) /
+(6 * 60 * 60 * 1000)
+);
+
+if(periods > 0){
+    total += periods * card.income;
+}
+
+});
+
+return total;
+
+}
+
 function renderGold() {
 document.getElementById("gold-info").innerHTML =
 `💰 Złoto: ${Math.floor(player.gold)}`;
@@ -415,6 +442,15 @@ Kup
 `;
 
 });
+
+}
+
+function renderCollectButton(){
+
+const collectable = getCollectableGold();
+
+document.getElementById("collect-btn").innerHTML =
+`💰 Zbierz złoto (${collectable})`;
 
 }
 
@@ -743,10 +779,15 @@ renderAll();
 function renderAll(){
 
 renderGold();
+renderCollectButton();
 renderShop();
 renderSlots();
 
 }
+
+setInterval(() => {
+    renderCollectButton();
+}, 1000);
 
 generateShop();
 renderAll();
