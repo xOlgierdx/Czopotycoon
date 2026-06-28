@@ -116,11 +116,45 @@ button {
     background: orange;
 }
 
+    .corner-button{
+    position: fixed;
+    top: 20px;
+    right: 20px;
+
+    background: #3498db;
+    color: white;
+
+    padding: 12px 18px;
+
+    border: none;
+    border-radius: 10px;
+
+    font-weight: bold;
+    font-size: 15px;
+
+    cursor: pointer;
+
+    box-shadow: 0 0 10px rgba(0,0,0,.35);
+
+    transition: .2s;
+}
+
+.corner-button:hover{
+    transform: scale(1.05);
+    background: #2980b9;
+}
+
 </style>
 </head>
 <body>
 
 <h1>🏆 Card Tycoon</h1>
+
+    <button
+class="corner-button"
+onclick="window.location.href='https://czopokoarty2.netlify.app/';">
+🏠 CZOPOKARTY
+</button>
 
 <div id="gold-info">💰 Złoto: 0</div>
 
