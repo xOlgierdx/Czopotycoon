@@ -302,41 +302,41 @@ player.ownedCards.forEach(card => {
         if(card.name === "Uma"){
             card.income1 = 1;
             card.income2 = 2;
-            card.income3 = 3;
-            card.upgrade2Cost = 16;
-            card.upgrade3Cost = 32;
+            card.income3 = 4;
+            card.upgrade2Cost = 40;
+            card.upgrade3Cost = 80;
         }
 
         if(card.name === "3Z-0P"){
             card.income1 = 2;
             card.income2 = 4;
-            card.income3 = 6;
-            card.upgrade2Cost = 28;
-            card.upgrade3Cost = 56;
+            card.income3 = 8;
+            card.upgrade2Cost = 80;
+            card.upgrade3Cost = 160;
         }
 
         if(card.name === "Czop Kennedy"){
             card.income1 = 3;
             card.income2 = 6;
-            card.income3 = 9;
-            card.upgrade2Cost = 40;
-            card.upgrade3Cost = 80;
+            card.income3 = 12;
+            card.upgrade2Cost = 120;
+            card.upgrade3Cost = 240;
         }
 
         if(card.name === "Marcin Stark"){
             card.income1 = 4;
             card.income2 = 8;
-            card.income3 = 12;
-            card.upgrade2Cost = 52;
-            card.upgrade3Cost = 104;
+            card.income3 = 16;
+            card.upgrade2Cost = 160;
+            card.upgrade3Cost = 320;
         }
 
         if(card.name === "Czołgista"){
             card.income1 = 5;
             card.income2 = 10;
-            card.income3 = 15;
-            card.upgrade2Cost = 64;
-            card.upgrade3Cost = 128;
+            card.income3 = 20;
+            card.upgrade2Cost = 200;
+            card.upgrade3Cost = 400;
         }
 
     }
@@ -426,7 +426,7 @@ const now = Date.now();
 const periods =
 Math.floor(
 (now - card.lastCollected) /
-(6 * 60 * 60 * 1000)
+(60 * 60 * 1000)
 );
 
 if(periods > 0){
@@ -464,7 +464,7 @@ shop.innerHTML += `
 
 <div>💰 Cena: ${card.price}</div>
 
-<div>📈 ${card.income1} zł / 6h</div>
+<div>📈 ${card.income1} zł / h</div>
 
 <button
 class="buy-btn"
@@ -551,7 +551,7 @@ style="width:150px;height:180px;border-radius:6px;">
 
 <div>⚪ Rzadkość: ${card.rarity}</div>
 
-<div>📈 ${card.income} zł / 6h</div>
+<div>📈 ${card.income} zł / h</div>
 
 <div>💰 Aktualna wartość: ${getCardValue(card)} zł</div>
 
@@ -779,7 +779,7 @@ const now = Date.now();
 const periods =
 Math.floor(
 (now - card.lastCollected) /
-(6 * 60 * 60 * 1000)
+(60 * 60 * 1000)
 );
 
 if(periods > 0){
