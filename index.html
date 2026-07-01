@@ -417,25 +417,23 @@ savePlayer();
 
 function getCollectableGold(){
 
-let total = 0;
+    let total = 0;
 
-player.ownedCards.forEach(card=>{
+    player.ownedCards.forEach(card=>{
 
-const now = Date.now();
+        const now = Date.now();
 
-const periods =
-Math.floor(
-(now - card.lastCollected) /
-(60 * 60 * 1000)
-);
+        const hours = Math.floor(
+            (now - card.lastCollected) / (60 * 60 * 1000)
+        );
 
-if(periods > 0){
-    total += periods * card.income;
-}
+        if(hours > 0){
+            total += hours * card.income;
+        }
 
-});
+    });
 
-return total;
+    return total;
 
 }
 
@@ -770,43 +768,40 @@ alert(
 
 function collectGold(){
 
-let total = 0;
+    let total = 0;
 
-player.ownedCards.forEach(card=>{
+    player.ownedCards.forEach(card=>{
 
-const now = Date.now();
+        const now = Date.now();
 
-const periods =
-Math.floor(
-(now - card.lastCollected) /
-(60 * 60 * 1000)
-);
+        // Ilość pełnych godzin od ostatniego odbioru
+        const hours = Math.floor(
+            (now - card.lastCollected) / (60 * 60 * 1000)
+        );
 
-if(periods > 0){
+        if(hours > 0){
 
-const earned =
-periods * card.income;
+            total += hours * card.income;
 
-total += earned;
+            // Zachowujemy niewykorzystane minuty
+            card.lastCollected += hours * (60 * 60 * 1000);
 
-card.lastCollected +=
-periods * (6 * 60 * 60 * 1000);
+        }
 
-}
+    });
 
-});
+    if(total <= 0){
+        alert("Karty jeszcze nic nie zarobiły.");
+        return;
+    }
 
-player.gold += total;
+    player.gold += total;
 
-if(total > 0){
-alert(`Odebrano ${total} złota!`);
-}
-else{
-alert("Karty jeszcze nic nie zarobiły.");
-}
+    savePlayer();
 
-savePlayer();
-renderAll();
+    renderAll();
+
+    alert(`Odebrano ${total} złota!`);
 
 }
 
