@@ -289,6 +289,14 @@ if (!player.shopCards) {
 
 player.ownedCards.forEach(card => {
 
+if (!card.lastCollected) {
+    card.lastCollected = Date.now();
+}
+
+if (!card.income) {
+    card.income = card.income1;
+}
+
     if (!card.rarity) {
         card.rarity = "zwykla";
     }
