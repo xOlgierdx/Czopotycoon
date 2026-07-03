@@ -355,6 +355,25 @@ function savePlayer() {
 localStorage.setItem("tycoonData", JSON.stringify(player));
 }
 
+function repairCards(){
+
+    const now = Date.now();
+
+    player.ownedCards.forEach(card=>{
+
+        if(typeof card.lastCollected !== "number"){
+            card.lastCollected = now;
+        }
+
+        // Jeżeli data jest z przyszłości (pozostałość po starym systemie 6h)
+        if(card.lastCollected > now){
+            card.lastCollected = now;
+        }
+
+    });
+
+}
+
 function getToday() {
 return new Date().toDateString();
 }
@@ -426,14 +445,13 @@ savePlayer();
 function getCollectableGold(){
 
     let total = 0;
+    const now = Date.now();
 
     player.ownedCards.forEach(card=>{
 
-        const now = Date.now();
+        const elapsed = now - card.lastCollected;
 
-        const hours = Math.floor(
-            (now - card.lastCollected) / (60 * 60 * 1000)
-        );
+        const hours = Math.floor(elapsed / 3600000);
 
         if(hours > 0){
             total += hours * card.income;
@@ -778,21 +796,19 @@ function collectGold(){
 
     let total = 0;
 
+    const now = Date.now();
+
     player.ownedCards.forEach(card=>{
 
-        const now = Date.now();
+        const elapsed = now - card.lastCollected;
 
-        // Ilość pełnych godzin od ostatniego odbioru
-        const hours = Math.floor(
-            (now - card.lastCollected) / (60 * 60 * 1000)
-        );
+        const hours = Math.floor(elapsed / 3600000);
 
         if(hours > 0){
 
             total += hours * card.income;
 
-            // Zachowujemy niewykorzystane minuty
-            card.lastCollected += hours * (60 * 60 * 1000);
+            card.lastCollected += hours * 3600000;
 
         }
 
@@ -826,6 +842,7 @@ setInterval(() => {
     renderCollectButton();
 }, 1000);
 
+repairCards();
 generateShop();
 renderAll();
 
