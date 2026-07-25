@@ -54,10 +54,16 @@ h1 {
     box-shadow: 0 0 10px rgba(0,0,0,0.3);
 }
 
+.card-entry.rzadka {
+    border: 3px solid #3498db;
+    background: #eaf2f8;
+}
+
 .card-entry img {
     width: 150px;
-    height: 180px;
+    height: 200px;
     border-radius: 6px;
+    object-fit: cover;
 }
 
 .owned-card {
@@ -66,6 +72,10 @@ h1 {
     border-radius: 10px;
     padding: 10px;
     box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.owned-card.rzadka {
+    border: 3px solid #3498db;
 }
 
 .owned-card.level2 {
@@ -105,6 +115,11 @@ button {
     padding: 10px;
 }
 
+.slot.rzadka {
+    border-color: #3498db;
+    background: rgba(52, 152, 219, 0.1);
+}
+
 .collect-btn {
     background: limegreen;
     color: white;
@@ -116,30 +131,39 @@ button {
     background: orange;
 }
 
-.corner-button{
+.rebirth-btn {
+    background: #e74c3c;
+    color: white;
+    font-size: 16px;
+    padding: 10px 20px;
+    box-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
+}
+
+.shop-toggle-btn {
+    background: #8e44ad;
+    color: white;
+    font-size: 14px;
+    padding: 8px 16px;
+    margin-left: 10px;
+}
+
+.corner-button {
     position: fixed;
     top: 20px;
     right: 20px;
-
     background: #3498db;
     color: white;
-
     padding: 12px 18px;
-
     border: none;
     border-radius: 10px;
-
     font-weight: bold;
     font-size: 15px;
-
     cursor: pointer;
-
     box-shadow: 0 0 10px rgba(0,0,0,.35);
-
     transition: .2s;
 }
 
-.corner-button:hover{
+.corner-button:hover {
     transform: scale(1.05);
     background: #2980b9;
 }
@@ -157,101 +181,182 @@ onclick="window.location.href='https://czopokoarty2.netlify.app/';">
 </button>
 
 <div id="gold-info">💰 Złoto: 0</div>
+<div id="income-info" style="font-size: 18px; margin-bottom: 20px; color: #2ecc71; font-weight: bold;">
+    📈 Przychód: 0 zł / h
+</div>
 
-<button
-id="collect-btn"
-class="collect-btn"
-onclick="collectGold()">
-💰 Zbierz złoto (0)
-</button>
+<div style="margin-bottom: 20px;">
+    <button
+    id="collect-btn"
+    class="collect-btn"
+    onclick="collectGold()">
+    💰 Zbierz złoto (0)
+    </button>
+    <button
+    id="rebirth-btn"
+    class="rebirth-btn"
+    onclick="doRebirth()">
+    🔄 Rebirth (Odblokuj nową zawartość)
+    </button>
+</div>
 
-<h2 class="section-title">🛒 Sklep</h2>
-<button
-onclick="refreshShop()"
-style="background:dodgerblue;color:white;">
-🔄 Odśwież sklep (20 zł)
-</button>
+<h2 class="section-title">🛒 Sklep (<span id="shop-type-title">Zwykły</span>)</h2>
+<div style="margin-bottom: 15px;">
+    <button
+    onclick="refreshShop()"
+    style="background:dodgerblue;color:white;">
+    🔄 Odśwież sklep (500 zł)
+    </button>
+    <button
+    id="toggle-shop-btn"
+    class="shop-toggle-btn"
+    onclick="toggleShop()"
+    style="display:none;">
+    🏪 Przełącz sklep
+    </button>
+</div>
+
 <div id="shop" class="shop-container"></div>
 
-<h2 class="section-title">🏠 Twoje miejsca</h2>
-<div id="slots" class="slots-container"></div>
+<div id="rare-slots-section" style="display:none;">
+    <h2 class="section-title">⭐ Twoje miejsca (Rzadkie)</h2>
+    <div id="slots-rare" class="slots-container"></div>
+</div>
+
+<h2 class="section-title">🏠 Twoje miejsca (Zwykłe)</h2>
+<div id="slots-normal" class="slots-container"></div>
 
 <script>
 
-const allCards = [
+// Helper do formatowania waluty (1000 -> 1k, 2500 -> 2,5k)
+function formatNumber(num) {
+    if (num >= 1000) {
+        let formatted = (num / 1000).toFixed(1);
+        if (formatted.endsWith('.0')) {
+            formatted = formatted.substring(0, formatted.length - 2);
+        }
+        return formatted.replace('.', ',') + 'k';
+    }
+    return num.toString();
+}
 
-//PODSTAWOWE
+const allCards = [
+// PODSTAWOWE
 {
 name:"Uma",
 image:"grafiki/C1.jpg",
 rarity:"zwykla",
 price:20,
-
 income1:1,
 income2:2,
 income3:4,
-
 upgrade2Cost:40,
 upgrade3Cost:80
 },
-
 {
 name:"3Z-0P",
 image:"grafiki/C2.jpg",
 rarity:"zwykla",
 price:40,
-
 income1:2,
 income2:4,
 income3:8,
-
 upgrade2Cost:80,
 upgrade3Cost:160
 },
-
 {
 name:"Czop Kennedy",
 image:"grafiki/C3.jpg",
 rarity:"zwykla",
 price:60,
-
 income1:3,
 income2:6,
 income3:12,
-
 upgrade2Cost:120,
 upgrade3Cost:240
 },
-
 {
 name:"Marcin Stark",
 image:"grafiki/C4.jpg",
 rarity:"zwykla",
 price:80,
-
 income1:4,
 income2:8,
 income3:16,
-
 upgrade2Cost:160,
 upgrade3Cost:320
 },
-
 {
 name:"Czołgista",
 image:"grafiki/C5.jpg",
 rarity:"zwykla",
 price:100,
-
 income1:5,
 income2:10,
 income3:20,
-
 upgrade2Cost:200,
 upgrade3Cost:400
-}
+},
 
+// RZADKIE (ODBLOKOWYWANE PO REBIRTH)
+{
+name:"Śmiertkeus",
+image:"grafiki/R1.jpg",
+rarity:"rzadka",
+price:1000,
+income1:6,
+income2:12,
+income3:24,
+upgrade2Cost:2000,
+upgrade3Cost:4000
+},
+{
+name:"Karciarz",
+image:"grafiki/R2.jpg",
+rarity:"rzadka",
+price:2500,
+income1:7,
+income2:14,
+income3:28,
+upgrade2Cost:5000,
+upgrade3Cost:10000
+},
+{
+name:"Golfista",
+image:"grafiki/R3.jpg",
+rarity:"rzadka",
+price:5000,
+income1:8,
+income2:16,
+income3:32,
+upgrade2Cost:10000,
+upgrade3Cost:20000
+},
+{
+name:"Jak & Czop",
+image:"grafiki/R4.jpg",
+rarity:"rzadka",
+price:7500,
+income1:9,
+income2:18,
+income3:36,
+upgrade2Cost:15000,
+upgrade3Cost:30000
+},
+{
+name:"James Nowak",
+image:"grafiki/R5.jpg",
+rarity:"rzadka",
+price:10000,
+income1:10,
+income2:20,
+income3:40,
+upgrade2Cost:20000,
+upgrade3Cost:40000
+}
 ];
+
+let currentShopMode = "zwykla"; // "zwykla" lub "rzadka"
 
 let player = JSON.parse(localStorage.getItem("tycoonData"));
 
@@ -259,590 +364,480 @@ if (!player) {
     player = {
         gold: 50,
         slotsUnlocked: 1,
-        slotRarities: [
-            "zwykla",
-            "zwykla",
-            "zwykla"
-        ],
+        rareSlotsUnlocked: 0,
+        hasRebirth: false,
         ownedCards: [],
         shopCards: [],
+        rareShopCards: [],
         lastShopRefresh: ""
     };
 }
 
-// Naprawa starych zapisów
-if (!player.slotRarities) {
-    player.slotRarities = [
-        "zwykla",
-        "zwykla",
-        "zwykla"
-    ];
-}
-
-if (!player.ownedCards) {
-    player.ownedCards = [];
-}
-
-if (!player.shopCards) {
-    player.shopCards = [];
-}
-
-player.ownedCards.forEach(card => {
-
-if (!card.lastCollected) {
-    card.lastCollected = Date.now();
-}
-
-if (!card.income) {
-    card.income = card.income1;
-}
-
-    if (!card.rarity) {
-        card.rarity = "zwykla";
-    }
-
-    if (!card.level) {
-        card.level = 1;
-    }
-
-    if (!card.income1) {
-
-        if(card.name === "Uma"){
-            card.income1 = 1;
-            card.income2 = 2;
-            card.income3 = 4;
-            card.upgrade2Cost = 40;
-            card.upgrade3Cost = 80;
-        }
-
-        if(card.name === "3Z-0P"){
-            card.income1 = 2;
-            card.income2 = 4;
-            card.income3 = 8;
-            card.upgrade2Cost = 80;
-            card.upgrade3Cost = 160;
-        }
-
-        if(card.name === "Czop Kennedy"){
-            card.income1 = 3;
-            card.income2 = 6;
-            card.income3 = 12;
-            card.upgrade2Cost = 120;
-            card.upgrade3Cost = 240;
-        }
-
-        if(card.name === "Marcin Stark"){
-            card.income1 = 4;
-            card.income2 = 8;
-            card.income3 = 16;
-            card.upgrade2Cost = 160;
-            card.upgrade3Cost = 320;
-        }
-
-        if(card.name === "Czołgista"){
-            card.income1 = 5;
-            card.income2 = 10;
-            card.income3 = 20;
-            card.upgrade2Cost = 200;
-            card.upgrade3Cost = 400;
-        }
-
-    }
-
-});
+// Inicjalizacja nowych pól dla starszych zapisów
+if (player.rareSlotsUnlocked === undefined) player.rareSlotsUnlocked = 0;
+if (player.hasRebirth === undefined) player.hasRebirth = false;
+if (!player.rareShopCards) player.rareShopCards = [];
+if (!player.ownedCards) player.ownedCards = [];
+if (!player.shopCards) player.shopCards = [];
 
 function savePlayer() {
-localStorage.setItem("tycoonData", JSON.stringify(player));
-}
-
-function repairCards(){
-
-    const now = Date.now();
-
-    player.ownedCards.forEach(card=>{
-
-        if(typeof card.lastCollected !== "number"){
-            card.lastCollected = now;
-        }
-
-        // Jeżeli data jest z przyszłości (pozostałość po starym systemie 6h)
-        if(card.lastCollected > now){
-            card.lastCollected = now;
-        }
-
-    });
-
+    localStorage.setItem("tycoonData", JSON.stringify(player));
 }
 
 function getToday() {
-return new Date().toDateString();
+    return new Date().toDateString();
 }
 
-function randomCard() {
+function randomCard(rarity = "zwykla") {
+    // Filtrujemy bazę kart po podanej rzadkości
+    const pool = allCards.filter(c => c.rarity === rarity);
+    const roll = Math.random() * 100;
 
-const roll = Math.random() * 100;
-
-if(roll < 45){
-    return JSON.parse(JSON.stringify(allCards[0]));
-}
-else if(roll < 70){
-    return JSON.parse(JSON.stringify(allCards[1]));
-}
-else if(roll < 85){
-    return JSON.parse(JSON.stringify(allCards[2]));
-}
-else if(roll < 95){
-    return JSON.parse(JSON.stringify(allCards[3]));
-}
-else{
-    return JSON.parse(JSON.stringify(allCards[4]));
-}
-
+    if (roll < 40) {
+        return JSON.parse(JSON.stringify(pool[0])); // 40% szansy
+    } else if (roll < 65) {
+        return JSON.parse(JSON.stringify(pool[1])); // 25% szansy (40 + 25)
+    } else if (roll < 85) {
+        return JSON.parse(JSON.stringify(pool[2])); // 20% szansy (65 + 20)
+    } else if (roll < 95) {
+        return JSON.parse(JSON.stringify(pool[3])); // 10% szansy (85 + 10)
+    } else {
+        return JSON.parse(JSON.stringify(pool[4])); // 5% szansy (pozostałe)
+    }
 }
 
 function refreshShop(){
-
-if(player.gold < 20){
-    alert("Potrzebujesz 20 złota!");
-    return;
-}
-
-if(!confirm("Odświeżyć sklep za 20 złota?")){
-    return;
-}
-
-player.gold -= 20;
-
-player.shopCards = [];
-
-for(let i=0;i<3;i++){
-    player.shopCards.push(randomCard());
-}
-
-savePlayer();
-renderAll();
-
-}
-
-function generateShop() {
-
-const today = getToday();
-
-if(player.lastShopRefresh !== today || player.shopCards.length === 0){
-
-player.shopCards = [];
-
-for(let i=0;i<3;i++){
-    player.shopCards.push(randomCard());
-}
-
-player.lastShopRefresh = today;
-savePlayer();
-}
-
-}
-
-function getCollectableGold(){
-
-    let total = 0;
-    const now = Date.now();
-
-    player.ownedCards.forEach(card=>{
-
-        const elapsed = now - card.lastCollected;
-
-        const hours = Math.floor(elapsed / 3600000);
-
-        if(hours > 0){
-            total += hours * card.income;
-        }
-
-    });
-
-    return total;
-
-}
-
-function renderGold() {
-document.getElementById("gold-info").innerHTML =
-`💰 Złoto: ${Math.floor(player.gold)}`;
-}
-
-function renderShop() {
-
-const shop = document.getElementById("shop");
-shop.innerHTML = "";
-
-player.shopCards.forEach((card,index)=>{
-
-shop.innerHTML += `
-<div class="card-entry">
-
-<img src="${card.image}">
-
-<h3>${card.name}</h3>
-
-<div>⭐ Lvl 1</div>
-
-<div>⚪ Rzadkość: ${card.rarity}</div>
-
-<div>💰 Cena: ${card.price}</div>
-
-<div>📈 ${card.income1} zł / h</div>
-
-<button
-class="buy-btn"
-onclick="buyCard(${index})">
-Kup
-</button>
-
-</div>
-`;
-
-});
-
-}
-
-function renderCollectButton(){
-
-const collectable = getCollectableGold();
-
-document.getElementById("collect-btn").innerHTML =
-`💰 Zbierz złoto (${collectable})`;
-
-}
-
-function getCardValue(card){
-
-if(card.level === 1){
-    return card.price;
-}
-
-if(card.level === 2){
-    return card.upgrade2Cost;
-}
-
-if(card.level === 3){
-    return card.upgrade3Cost;
-}
-
-return card.price;
-
-}
-
-function renderSlots() {
-
-const slots = document.getElementById("slots");
-slots.innerHTML = "";
-
-for(let i=0;i<3;i++){
-
-if(i < player.slotsUnlocked){
-
-const card = player.ownedCards[i];
-const slotRarity = player.slotRarities[i];
-
-if(card){
-
-    let upgradeCost = 0;
-
-if(card.level === 1){
-    upgradeCost = card.upgrade2Cost;
-}
-else if(card.level === 2){
-    upgradeCost = card.upgrade3Cost;
-}
-
-slots.innerHTML += `
-
-<div class="slot">
-
-<div class="
-owned-card
-${card.level === 2 ? 'level2' : ''}
-${card.level === 3 ? 'level3' : ''}
-">
-
-<img
-src="${card.image}"
-style="width:150px;height:180px;border-radius:6px;">
-
-<h3>${card.name}</h3>
-
-<div>⚪ Slot: ${slotRarity}</div>
-
-<div>⭐ Lvl ${card.level}</div>
-
-<div>⚪ Rzadkość: ${card.rarity}</div>
-
-<div>📈 ${card.income} zł / h</div>
-
-<div>💰 Aktualna wartość: ${getCardValue(card)} zł</div>
-
-<div>
-💸 Sprzedaż:
-${Math.floor(getCardValue(card)/2)} zł
-</div>
-
-${card.level < 3 ? `
-<button
-onclick="upgradeCard(${i})"
-style="background:limegreen;color:white;">
-⬆️ Ulepsz (${upgradeCost} zł)
-</button>
-` : `
-<div style="color:gold;font-weight:bold;">
-⭐ MAX LVL
-</div>
-`}
-
-<button
-onclick="sellCard(${i})"
-style="background:red;color:white;">
-Sprzedaj
-</button>
-
-</div>
-
-</div>
-`;
-
-}
-else{
-
-slots.innerHTML += `
-<div class="slot">
-
-<div class="owned-card">
-
-<h3>Puste miejsce</h3>
-
-<div>
-⚪ Slot: ${slotRarity}
-</div>
-
-</div>
-
-</div>
-`;
-}
-}
-else{
-
-let cost = i === 1 ? 10 : 25;
-
-slots.innerHTML += `
-<div class="slot">
-
-<h3>🔒 Zablokowane</h3>
-
-<p>Koszt: ${cost} złota</p>
-
-<button
-class="unlock-btn"
-onclick="unlockSlot(${i})">
-
-Odblokuj
-
-</button>
-
-</div>
-`;
-
-}
-
-}
-
-}
-
-function unlockSlot(slotIndex){
-
-const cost = slotIndex === 1 ? 10 : 25;
-
-if(player.gold < cost){
-alert("Za mało złota!");
-return;
-}
-
-player.gold -= cost;
-player.slotsUnlocked++;
-
-savePlayer();
-
-renderAll();
-
-}
-
-function buyCard(index){
-
-if(player.ownedCards.length >= player.slotsUnlocked){
-alert("Brak wolnego miejsca!");
-return;
-}
-
-const card = player.shopCards[index];
-
-if(player.gold < card.price){
-alert("Za mało złota!");
-return;
-}
-
-
-player.gold -= card.price;
-
-player.ownedCards.push({
-name: card.name,
-image: card.image,
-rarity: card.rarity,
-income: card.income1,
-
-income1: card.income1,
-income2: card.income2,
-income3: card.income3,
-
-upgrade2Cost: card.upgrade2Cost,
-upgrade3Cost: card.upgrade3Cost,
-price: card.price,
-level: 1,
-lastCollected: Date.now()
-});
-
-player.shopCards[index] = randomCard();
-
-savePlayer();
-
-renderAll();
-
-}
-
-function sellCard(slotIndex){
-
-const card = player.ownedCards[slotIndex];
-
-if(!card) return;
-
-let goldBack = 0;
-
-if(card.level === 1){
-    goldBack = Math.floor(card.price / 2);
-}
-else if(card.level === 2){
-    goldBack = Math.floor(card.upgrade2Cost / 2);
-}
-else if(card.level === 3){
-    goldBack = Math.floor(card.upgrade3Cost / 2);
-}
-
-if(confirm(
-`Sprzedać ${card.name} (Lv.${card.level}) za ${goldBack} złota?`
-)){
-
-player.gold += goldBack;
-
-player.ownedCards.splice(slotIndex,1);
-
-savePlayer();
-renderAll();
-
-}
-
-}
-
-function upgradeCard(slotIndex){
-
-const card = player.ownedCards[slotIndex];
-
-if(!card) return;
-
-let cost = 0;
-
-if(card.level === 1){
-    cost = card.upgrade2Cost;
-}
-else if(card.level === 2){
-    cost = card.upgrade3Cost;
-}
-else{
-    alert("Maksymalny poziom!");
-    return;
-}
-
-if(player.gold < cost){
-    alert("Za mało złota!");
-    return;
-}
-
-player.gold -= cost;
-
-card.level++;
-
-if(card.level === 2){
-    card.income = card.income2;
-}
-else if(card.level === 3){
-    card.income = card.income3;
-}
-
-savePlayer();
-renderAll();
-
-alert(
-`${card.name} ulepszono na poziom ${card.level}!`
-);
-
-}
-
-function collectGold(){
-
-    let total = 0;
-
-    const now = Date.now();
-
-    player.ownedCards.forEach(card=>{
-
-        const elapsed = now - card.lastCollected;
-
-        const hours = Math.floor(elapsed / 3600000);
-
-        if(hours > 0){
-
-            total += hours * card.income;
-
-            card.lastCollected += hours * 3600000;
-
-        }
-
-    });
-
-    if(total <= 0){
-        alert("Karty jeszcze nic nie zarobiły.");
+    if(player.gold < 500){
+        alert("Potrzebujesz 500 złota!");
         return;
     }
 
-    player.gold += total;
+    if(!confirm("Odświeżyć sklep za 500 złota?")){
+        return;
+    }
+
+    player.gold -= 500;
+
+    if (currentShopMode === "zwykla") {
+        player.shopCards = [];
+        for(let i=0; i<3; i++){
+            player.shopCards.push(randomCard("zwykla"));
+        }
+    } else {
+        player.rareShopCards = [];
+        for(let i=0; i<3; i++){
+            player.rareShopCards.push(randomCard("rzadka"));
+        }
+    }
 
     savePlayer();
+    renderAll();
+}
 
+function generateShop() {
+    const today = getToday();
+
+    // Jeśli zmienił się dzień LUB sklepy są puste -> losuj nowe karty
+    if (player.lastShopRefresh !== today || player.shopCards.length === 0) {
+        
+        // Reset sklepu zwykłego
+        player.shopCards = [];
+        for(let i = 0; i < 3; i++){
+            player.shopCards.push(randomCard("zwykla"));
+        }
+
+        // Reset sklepu rzadkiego (jeśli gracz ma Rebirth)
+        if (player.hasRebirth) {
+            player.rareShopCards = [];
+            for(let i = 0; i < 3; i++){
+                player.rareShopCards.push(randomCard("rzadka"));
+            }
+        }
+
+        player.lastShopRefresh = today;
+    }
+
+    savePlayer();
+}
+
+function toggleShop() {
+    if (!player.hasRebirth) return;
+    currentShopMode = (currentShopMode === "zwykla") ? "rzadka" : "zwykla";
+    renderShop();
+}
+
+function doRebirth() {
+    // Zabezpieczenie przed ponownym kliknięciem, jeśli już zrobiono rebirth
+    if (player.hasRebirth) {
+        alert("Rebirth został już wykonany!");
+        return;
+    }
+
+    if(!confirm("Czy na pewno chcesz zrobić Rebirth? Twoje złoto zmieni się na 2k, a nieodebrany dochód z kart zostanie zresetowany. Odblokujesz rzadkie karty, nowe sloty oraz rzadki sklep!")){
+        return;
+    }
+
+    player.hasRebirth = true;
+    player.gold = 2000;
+
+    // Reset dochodu w kartach
+    player.ownedCards.forEach(card => {
+        card.lastCollected = Date.now();
+    });
+
+    if (player.rareShopCards.length === 0) {
+        for(let i=0; i<3; i++){
+            player.rareShopCards.push(randomCard("rzadka"));
+        }
+    }
+
+    savePlayer();
+    renderAll();
+    alert("Rebirth ukończony! Nowa zawartość została odblokowana.");
+}
+
+function getCollectableGold(){
+    let total = 0;
+    player.ownedCards.forEach(card => {
+        const now = Date.now();
+        const periods = Math.floor((now - card.lastCollected) / (1 * 60 * 60 * 1000));
+        if(periods > 0){
+            total += periods * card.income;
+        }
+    });
+    return total;
+}
+
+function renderGold() {
+    document.getElementById("gold-info").innerHTML = `💰 Złoto: ${formatNumber(Math.floor(player.gold))}`;
+}
+
+function renderShop() {
+    const shop = document.getElementById("shop");
+    const shopTitle = document.getElementById("shop-type-title");
+    const toggleBtn = document.getElementById("toggle-shop-btn");
+
+    if (player.hasRebirth) {
+        toggleBtn.style.display = "inline-block";
+        shopTitle.innerText = currentShopMode === "zwykla" ? "Zwykły" : "Rzadki";
+    } else {
+        toggleBtn.style.display = "none";
+        shopTitle.innerText = "Zwykły";
+    }
+
+    shop.innerHTML = "";
+    const activeCards = currentShopMode === "zwykla" ? player.shopCards : player.rareShopCards;
+
+    activeCards.forEach((card, index) => {
+        shop.innerHTML += `
+        <div class="card-entry ${card.rarity}">
+            <img src="${card.image}" onerror="this.src='https://via.placeholder.com/150x180?text=Karta'">
+            <h3>${card.name}</h3>
+            <div>⭐ Lvl 1</div>
+            <div>⚪ Rzadkość: ${card.rarity}</div>
+            <div>💰 Cena: ${formatNumber(card.price)}</div>
+            <div>📈 ${formatNumber(card.income1)} zł / h</div>
+            <button class="buy-btn" onclick="buyCard(${index})">Kup</button>
+        </div>
+        `;
+    });
+}
+
+function renderCollectButton(){
+    const collectable = getCollectableGold();
+    document.getElementById("collect-btn").innerHTML = `💰 Zbierz złoto (${formatNumber(collectable)})`;
+}
+
+function getCardValue(card){
+    if(card.level === 1) return card.price;
+    if(card.level === 2) return card.upgrade2Cost;
+    if(card.level === 3) return card.upgrade3Cost;
+    return card.price;
+}
+
+function renderSlots() {
+    // Rendowanie Zwykłych Slotów (Maksymalnie 4)
+    const slotsNormal = document.getElementById("slots-normal");
+    slotsNormal.innerHTML = "";
+
+    const maxNormalSlots = player.hasRebirth ? 4 : 3;
+
+    for(let i = 0; i < maxNormalSlots; i++) {
+        if(i < player.slotsUnlocked){
+            const card = player.ownedCards.filter(c => c.rarity === "zwykla")[i];
+
+            if(card){
+                const cardIndex = player.ownedCards.indexOf(card);
+                let upgradeCost = card.level === 1 ? card.upgrade2Cost : card.upgrade3Cost;
+
+                slotsNormal.innerHTML += `
+                <div class="slot">
+                    <div class="owned-card ${card.level === 2 ? 'level2' : ''} ${card.level === 3 ? 'level3' : ''}">
+                        <img src="${card.image}" style="width:150px;height:200px;border-radius:6px;object-fit:cover;" onerror="this.src='https://via.placeholder.com/150x180?text=Karta'">
+                        <h3>${card.name}</h3>
+                        <div>⚪ Slot: Zwykły</div>
+                        <div>⭐ Lvl ${card.level}</div>
+                        <div>📈 ${formatNumber(card.income)} zł / h</div>
+                        <div>💰 Wartość: ${formatNumber(getCardValue(card))} zł</div>
+                        <div>💸 Sprzedaż: ${formatNumber(Math.floor(getCardValue(card)/2))} zł</div>
+                        ${card.level < 3 ? `
+                        <button onclick="upgradeCard(${cardIndex})" style="background:limegreen;color:white;">
+                            ⬆️ Ulepsz (${formatNumber(upgradeCost)} zł)
+                        </button>
+                        ` : `<div style="color:gold;font-weight:bold;">⭐ MAX LVL</div>`}
+                        <button onclick="sellCard(${cardIndex})" style="background:red;color:white;">Sprzedaj</button>
+                    </div>
+                </div>`;
+            } else {
+                slotsNormal.innerHTML += `<div class="slot"><div class="owned-card"><h3>Puste miejsce</h3><div>⚪ Slot: Zwykły</div></div></div>`;
+            }
+        } else {
+            let cost = (i === 1) ? 10 : (i === 2) ? 25 : 5000;
+            slotsNormal.innerHTML += `
+            <div class="slot">
+                <h3>🔒 Zablokowane</h3>
+                <p>Koszt: ${formatNumber(cost)} złota</p>
+                <button class="unlock-btn" onclick="unlockSlot(${i})">Odblokuj</button>
+            </div>`;
+        }
+    }
+
+    // Rendowanie Rzadkich Slotów (Maksymalnie 3)
+    const rareSection = document.getElementById("rare-slots-section");
+    const slotsRare = document.getElementById("slots-rare");
+
+    if (player.hasRebirth) {
+        rareSection.style.display = "block";
+        slotsRare.innerHTML = "";
+
+        const rareCosts = [1000, 5000, 10000];
+
+        for(let i = 0; i < 3; i++) {
+            if(i < player.rareSlotsUnlocked){
+                const card = player.ownedCards.filter(c => c.rarity === "rzadka")[i];
+
+                if(card){
+                    const cardIndex = player.ownedCards.indexOf(card);
+                    let upgradeCost = card.level === 1 ? card.upgrade2Cost : card.upgrade3Cost;
+
+                    slotsRare.innerHTML += `
+                    <div class="slot rzadka">
+                        <div class="owned-card rzadka ${card.level === 2 ? 'level2' : ''} ${card.level === 3 ? 'level3' : ''}">
+                            <img src="${card.image}" style="width:150px;height:180px;border-radius:6px;object-fit:cover;" onerror="this.src='https://via.placeholder.com/150x180?text=Karta'">
+                            <h3>${card.name}</h3>
+                            <div>⭐ Slot: Rzadki</div>
+                            <div>⭐ Lvl ${card.level}</div>
+                            <div>📈 ${formatNumber(card.income)} zł / 6h</div>
+                            <div>💰 Wartość: ${formatNumber(getCardValue(card))} zł</div>
+                            <div>💸 Sprzedaż: ${formatNumber(Math.floor(getCardValue(card)/2))} zł</div>
+                            ${card.level < 3 ? `
+                            <button onclick="upgradeCard(${cardIndex})" style="background:limegreen;color:white;">
+                                ⬆️ Ulepsz (${formatNumber(upgradeCost)} zł)
+                            </button>
+                            ` : `<div style="color:gold;font-weight:bold;">⭐ MAX LVL</div>`}
+                            <button onclick="sellCard(${cardIndex})" style="background:red;color:white;">Sprzedaj</button>
+                        </div>
+                    </div>`;
+                } else {
+                    slotsRare.innerHTML += `<div class="slot rzadka"><div class="owned-card rzadka"><h3>Puste miejsce</h3><div>⭐ Slot: Rzadki</div></div></div>`;
+                }
+            } else {
+                let cost = rareCosts[i];
+                slotsRare.innerHTML += `
+                <div class="slot rzadka">
+                    <h3>🔒 Zablokowane</h3>
+                    <p>Koszt: ${formatNumber(cost)} złota</p>
+                    <button class="unlock-btn" onclick="unlockRareSlot(${i})">Odblokuj</button>
+                </div>`;
+            }
+        }
+    } else {
+        rareSection.style.display = "none";
+    }
+}
+
+function unlockSlot(slotIndex){
+    const cost = (slotIndex === 1) ? 10 : (slotIndex === 2) ? 25 : 5000;
+
+    if(player.gold < cost){
+        alert("Za mało złota!");
+        return;
+    }
+
+    player.gold -= cost;
+    player.slotsUnlocked++;
+    savePlayer();
+    renderAll();
+}
+
+function unlockRareSlot(slotIndex){
+    const rareCosts = [1000, 5000, 10000];
+    const cost = rareCosts[slotIndex];
+
+    if(player.gold < cost){
+        alert("Za mało złota!");
+        return;
+    }
+
+    player.gold -= cost;
+    player.rareSlotsUnlocked++;
+    savePlayer();
+    renderAll();
+}
+
+function buyCard(index){
+    const activeShop = currentShopMode === "zwykla" ? player.shopCards : player.rareShopCards;
+    const card = activeShop[index];
+
+    const normalCardsCount = player.ownedCards.filter(c => c.rarity === "zwykla").length;
+    const rareCardsCount = player.ownedCards.filter(c => c.rarity === "rzadka").length;
+
+    if (card.rarity === "zwykla" && normalCardsCount >= player.slotsUnlocked) {
+        alert("Brak wolnego zwykłego miejsca!");
+        return;
+    }
+
+    if (card.rarity === "rzadka" && rareCardsCount >= player.rareSlotsUnlocked) {
+        alert("Brak wolnego rzadkiego miejsca!");
+        return;
+    }
+
+    if(player.gold < card.price){
+        alert("Za mało złota!");
+        return;
+    }
+
+    player.gold -= card.price;
+
+    player.ownedCards.push({
+        name: card.name,
+        image: card.image,
+        rarity: card.rarity,
+        income: card.income1,
+        income1: card.income1,
+        income2: card.income2,
+        income3: card.income3,
+        upgrade2Cost: card.upgrade2Cost,
+        upgrade3Cost: card.upgrade3Cost,
+        price: card.price,
+        level: 1,
+        lastCollected: Date.now()
+    });
+
+    activeShop[index] = randomCard(card.rarity);
+
+    savePlayer();
+    renderAll();
+}
+
+function sellCard(slotIndex){
+    const card = player.ownedCards[slotIndex];
+    if(!card) return;
+
+    let goldBack = Math.floor(getCardValue(card) / 2);
+
+    if(confirm(`Sprzedać ${card.name} (Lv.${card.level}) za ${formatNumber(goldBack)} złota?`)){
+        player.gold += goldBack;
+        player.ownedCards.splice(slotIndex, 1);
+        savePlayer();
+        renderAll();
+    }
+}
+
+function upgradeCard(slotIndex){
+    const card = player.ownedCards[slotIndex];
+    if(!card) return;
+
+    let cost = (card.level === 1) ? card.upgrade2Cost : (card.level === 2) ? card.upgrade3Cost : 0;
+
+    if(cost === 0){
+        alert("Maksymalny poziom!");
+        return;
+    }
+
+    if(player.gold < cost){
+        alert("Za mało złota!");
+        return;
+    }
+
+    player.gold -= cost;
+    card.level++;
+
+    if(card.level === 2) card.income = card.income2;
+    else if(card.level === 3) card.income = card.income3;
+
+    savePlayer();
     renderAll();
 
-    alert(`Odebrano ${total} złota!`);
+    alert(`${card.name} ulepszono na poziom ${card.level}!`);
+}
 
+function collectGold(){
+    let total = 0;
+
+    player.ownedCards.forEach(card => {
+        const now = Date.now();
+        
+        // ZMIANA 1: zmiana interwału na 1h
+        const periods = Math.floor((now - card.lastCollected) / (1 * 60 * 60 * 1000));
+
+        if(periods > 0){
+            const earned = periods * card.income;
+            total += earned;
+            
+            // ZMIANA 2: przesuwanie czasu ostatniego zbioru o wypracowane godziny
+            card.lastCollected += periods * (1 * 60 * 60 * 1000);
+        }
+    });
+
+    player.gold += total;
+
+    if(total > 0){
+        alert(`Odebrano ${formatNumber(total)} złota!`);
+    } else {
+        alert("Karty jeszcze nic nie zarobiły.");
+    }
+
+    savePlayer();
+    renderAll();
+}
+
+function getTotalIncome() {
+    let total = 0;
+    player.ownedCards.forEach(card => {
+        total += card.income;
+    });
+    return total;
+}
+
+function renderIncome() {
+    const income = getTotalIncome();
+    document.getElementById("income-info").innerHTML = 
+        `📈 Przychód: ${formatNumber(income)} zł / h`;
 }
 
 function renderAll(){
+    renderGold();
+    renderCollectButton();
+    renderIncome();
+    renderShop();
+    renderSlots();
 
-renderGold();
-renderCollectButton();
-renderShop();
-renderSlots();
-
+    // Blokowanie przycisku Rebirth po jego użyciu
+    const rebirthBtn = document.getElementById("rebirth-btn");
+    if (player.hasRebirth) {
+        rebirthBtn.disabled = true;
+        rebirthBtn.innerText = "✅ Rebirth wykonany";
+        rebirthBtn.style.background = "#7f8c8d"; // szary kolor
+        rebirthBtn.style.cursor = "not-allowed";
+        rebirthBtn.style.boxShadow = "none";
+    }
 }
 
 setInterval(() => {
     renderCollectButton();
 }, 1000);
 
-repairCards();
 generateShop();
 renderAll();
 
