@@ -59,6 +59,11 @@ h1 {
     background: #eaf2f8;
 }
 
+.card-entry.epicka {
+    border: 3px solid #9b59b6;
+    background: #f4ecf7;
+}
+
 .card-entry img {
     width: 150px;
     height: 200px;
@@ -76,6 +81,10 @@ h1 {
 
 .owned-card.rzadka {
     border: 3px solid #3498db;
+}
+
+.owned-card.epicka {
+    border: 3px solid #9b59b6;
 }
 
 .owned-card.level2 {
@@ -118,6 +127,11 @@ button {
 .slot.rzadka {
     border-color: #3498db;
     background: rgba(52, 152, 219, 0.1);
+}
+
+.slot.epicka {
+    border-color: #9b59b6;
+    background: rgba(155, 89, 182, 0.1);
 }
 
 .collect-btn {
@@ -219,7 +233,7 @@ button {
     id="rebirth-btn"
     class="rebirth-btn"
     onclick="doRebirth()">
-    🔄 Rebirth (Odblokuj nową zawartość)
+    🔄 Rebirth 1
     </button>
 </div>
 
@@ -240,6 +254,11 @@ button {
 </div>
 
 <div id="shop" class="shop-container"></div>
+
+<div id="epic-slots-section" style="display:none;">
+    <h2 class="section-title">🔮 Twoje miejsca (Epickie)</h2>
+    <div id="slots-epic" class="slots-container"></div>
+</div>
 
 <div id="rare-slots-section" style="display:none;">
     <h2 class="section-title">⭐ Twoje miejsca (Rzadkie)</h2>
@@ -321,7 +340,7 @@ upgrade2Cost:200,
 upgrade3Cost:400
 },
 
-// RZADKIE (ODBLOKOWYWANE PO REBIRTH)
+// RZADKIE (ODBLOKOWYWANE PO REBIRTH 1)
 {
 name:"Śmiertkeus",
 image:"grafiki/R1.jpg",
@@ -376,10 +395,67 @@ income2:20,
 income3:40,
 upgrade2Cost:20000,
 upgrade3Cost:40000
+},
+
+// EPICKIE (ODBLOKOWYWANE PO REBIRTH 2)
+{
+name:"Rewolwerowiec",
+image:"grafiki/E1.jpg",
+rarity:"epicka",
+price:3000,
+income1:10,
+income2:15,
+income3:20,
+upgrade2Cost:6000,
+upgrade3Cost:12000
+},
+{
+name:"Doktor Dziwak",
+image:"grafiki/E2.jpg",
+rarity:"epicka",
+price:5000,
+income1:20,
+income2:25,
+income3:30,
+upgrade2Cost:10000,
+upgrade3Cost:20000
+},
+{
+name:"Szkarłatna Wiedźma",
+image:"grafiki/E3.jpg",
+rarity:"epicka",
+price:10000,
+income1:30,
+income2:35,
+income3:40,
+upgrade2Cost:20000,
+upgrade3Cost:40000
+},
+{
+name:"Wybrańcy Khonsu",
+image:"grafiki/E4.jpg",
+rarity:"epicka",
+price:15000,
+income1:40,
+income2:45,
+income3:50,
+upgrade2Cost:30000,
+upgrade3Cost:60000
+},
+{
+name:"Liga Tropicieli",
+image:"grafiki/E5.jpg",
+rarity:"epicka",
+price:20000,
+income1:50,
+income2:55,
+income3:60,
+upgrade2Cost:40000,
+upgrade3Cost:80000
 }
 ];
 
-let currentShopMode = "zwykla"; // "zwykla" lub "rzadka"
+let currentShopMode = "zwykla"; // "zwykla", "rzadka" lub "epicka"
 
 let player = JSON.parse(localStorage.getItem("tycoonData"));
 
@@ -388,18 +464,24 @@ if (!player) {
         gold: 50,
         slotsUnlocked: 1,
         rareSlotsUnlocked: 0,
-        hasRebirth: false,
+        epicSlotsUnlocked: 0,
+        rebirthLevel: 0,
         ownedCards: [],
         shopCards: [],
         rareShopCards: [],
+        epicShopCards: [],
         lastShopRefresh: ""
     };
 }
 
-// Inicjalizacja nowych pól dla starszych zapisów
+// Konwersja starych zapisów ze zmienną hasRebirth na rebirthLevel
+if (player.rebirthLevel === undefined) {
+    player.rebirthLevel = player.hasRebirth ? 1 : 0;
+}
 if (player.rareSlotsUnlocked === undefined) player.rareSlotsUnlocked = 0;
-if (player.hasRebirth === undefined) player.hasRebirth = false;
+if (player.epicSlotsUnlocked === undefined) player.epicSlotsUnlocked = 0;
 if (!player.rareShopCards) player.rareShopCards = [];
+if (!player.epicShopCards) player.epicShopCards = [];
 if (!player.ownedCards) player.ownedCards = [];
 if (!player.shopCards) player.shopCards = [];
 
@@ -412,20 +494,19 @@ function getToday() {
 }
 
 function randomCard(rarity = "zwykla") {
-    // Filtrujemy bazę kart po podanej rzadkości
     const pool = allCards.filter(c => c.rarity === rarity);
     const roll = Math.random() * 100;
 
     if (roll < 40) {
-        return JSON.parse(JSON.stringify(pool[0])); // 40% szansy
+        return JSON.parse(JSON.stringify(pool[0])); // 40%
     } else if (roll < 65) {
-        return JSON.parse(JSON.stringify(pool[1])); // 25% szansy (40 + 25)
+        return JSON.parse(JSON.stringify(pool[1])); // 25%
     } else if (roll < 85) {
-        return JSON.parse(JSON.stringify(pool[2])); // 20% szansy (65 + 20)
+        return JSON.parse(JSON.stringify(pool[2])); // 20%
     } else if (roll < 95) {
-        return JSON.parse(JSON.stringify(pool[3])); // 10% szansy (85 + 10)
+        return JSON.parse(JSON.stringify(pool[3])); // 10%
     } else {
-        return JSON.parse(JSON.stringify(pool[4])); // 5% szansy (pozostałe)
+        return JSON.parse(JSON.stringify(pool[4])); // 5%
     }
 }
 
@@ -446,10 +527,15 @@ function refreshShop(){
         for(let i=0; i<3; i++){
             player.shopCards.push(randomCard("zwykla"));
         }
-    } else {
+    } else if (currentShopMode === "rzadka") {
         player.rareShopCards = [];
         for(let i=0; i<3; i++){
             player.rareShopCards.push(randomCard("rzadka"));
+        }
+    } else {
+        player.epicShopCards = [];
+        for(let i=0; i<3; i++){
+            player.epicShopCards.push(randomCard("epicka"));
         }
     }
 
@@ -460,20 +546,24 @@ function refreshShop(){
 function generateShop() {
     const today = getToday();
 
-    // Jeśli zmienił się dzień LUB sklepy są puste -> losuj nowe karty
     if (player.lastShopRefresh !== today || player.shopCards.length === 0) {
         
-        // Reset sklepu zwykłego
         player.shopCards = [];
         for(let i = 0; i < 3; i++){
             player.shopCards.push(randomCard("zwykla"));
         }
 
-        // Reset sklepu rzadkiego (jeśli gracz ma Rebirth)
-        if (player.hasRebirth) {
+        if (player.rebirthLevel >= 1) {
             player.rareShopCards = [];
             for(let i = 0; i < 3; i++){
                 player.rareShopCards.push(randomCard("rzadka"));
+            }
+        }
+
+        if (player.rebirthLevel >= 2) {
+            player.epicShopCards = [];
+            for(let i = 0; i < 3; i++){
+                player.epicShopCards.push(randomCard("epicka"));
             }
         }
 
@@ -484,39 +574,61 @@ function generateShop() {
 }
 
 function toggleShop() {
-    if (!player.hasRebirth) return;
-    currentShopMode = (currentShopMode === "zwykla") ? "rzadka" : "zwykla";
+    if (player.rebirthLevel === 0) return;
+    
+    if (player.rebirthLevel === 1) {
+        currentShopMode = (currentShopMode === "zwykla") ? "rzadka" : "zwykla";
+    } else if (player.rebirthLevel >= 2) {
+        if (currentShopMode === "zwykla") currentShopMode = "rzadka";
+        else if (currentShopMode === "rzadka") currentShopMode = "epicka";
+        else currentShopMode = "zwykla";
+    }
+    
     renderShop();
 }
 
 function doRebirth() {
-    // Zabezpieczenie przed ponownym kliknięciem, jeśli już zrobiono rebirth
-    if (player.hasRebirth) {
-        alert("Rebirth został już wykonany!");
+    if (player.rebirthLevel === 0) {
+        if(!confirm("Czy na pewno chcesz zrobić Rebirth 1? Twoje złoto zmieni się na 2k. Odblokujesz rzadkie karty, sloty i sklep!")){
+            return;
+        }
+        player.rebirthLevel = 1;
+        player.gold = 2000;
+
+        if (player.rareShopCards.length === 0) {
+            for(let i=0; i<3; i++){
+                player.rareShopCards.push(randomCard("rzadka"));
+            }
+        }
+
+        alert("Rebirth 1 ukończony! Odblokowano rzadkie karty!");
+
+    } else if (player.rebirthLevel === 1) {
+        if(!confirm("Czy na pewno chcesz zrobić Rebirth 2? Twoje złoto zmieni się na 10k! Odblokujesz epicki sklep, epickie sloty i dodatkowy 4. slot rzadki!")){
+            return;
+        }
+        player.rebirthLevel = 2;
+        player.gold = 10000;
+
+        if (player.epicShopCards.length === 0) {
+            for(let i=0; i<3; i++){
+                player.epicShopCards.push(randomCard("epicka"));
+            }
+        }
+
+        alert("Rebirth 2 ukończony! Odblokowano epicką zawartość!");
+    } else {
+        alert("Osiągnięto maksymalny poziom Rebirth!");
         return;
     }
-
-    if(!confirm("Czy na pewno chcesz zrobić Rebirth? Twoje złoto zmieni się na 2k, a nieodebrany dochód z kart zostanie zresetowany. Odblokujesz rzadkie karty, nowe sloty oraz rzadki sklep!")){
-        return;
-    }
-
-    player.hasRebirth = true;
-    player.gold = 2000;
 
     // Reset dochodu w kartach
     player.ownedCards.forEach(card => {
         card.lastCollected = Date.now();
     });
 
-    if (player.rareShopCards.length === 0) {
-        for(let i=0; i<3; i++){
-            player.rareShopCards.push(randomCard("rzadka"));
-        }
-    }
-
     savePlayer();
     renderAll();
-    alert("Rebirth ukończony! Nowa zawartość została odblokowana.");
 }
 
 function getCollectableGold(){
@@ -540,16 +652,21 @@ function renderShop() {
     const shopTitle = document.getElementById("shop-type-title");
     const toggleBtn = document.getElementById("toggle-shop-btn");
 
-    if (player.hasRebirth) {
+    if (player.rebirthLevel >= 1) {
         toggleBtn.style.display = "inline-block";
-        shopTitle.innerText = currentShopMode === "zwykla" ? "Zwykły" : "Rzadki";
+        if (currentShopMode === "zwykla") shopTitle.innerText = "Zwykły";
+        else if (currentShopMode === "rzadka") shopTitle.innerText = "Rzadki";
+        else if (currentShopMode === "epicka") shopTitle.innerText = "Epicki";
     } else {
         toggleBtn.style.display = "none";
         shopTitle.innerText = "Zwykły";
     }
 
     shop.innerHTML = "";
-    const activeCards = currentShopMode === "zwykla" ? player.shopCards : player.rareShopCards;
+    
+    let activeCards = player.shopCards;
+    if (currentShopMode === "rzadka") activeCards = player.rareShopCards;
+    if (currentShopMode === "epicka") activeCards = player.epicShopCards;
 
     activeCards.forEach((card, index) => {
         shop.innerHTML += `
@@ -579,11 +696,11 @@ function getCardValue(card){
 }
 
 function renderSlots() {
-    // Rendowanie Zwykłych Slotów (Maksymalnie 4)
+    // Rendowanie Zwykłych Slotów (Maksymalnie 4 po Rebirth 1)
     const slotsNormal = document.getElementById("slots-normal");
     slotsNormal.innerHTML = "";
 
-    const maxNormalSlots = player.hasRebirth ? 4 : 3;
+    const maxNormalSlots = player.rebirthLevel >= 1 ? 4 : 3;
 
     for(let i = 0; i < maxNormalSlots; i++) {
         if(i < player.slotsUnlocked){
@@ -625,17 +742,18 @@ function renderSlots() {
         }
     }
 
-    // Rendowanie Rzadkich Slotów (Maksymalnie 3)
+    // Rendowanie Rzadkich Slotów (3 dla Rebirth 1, 4 dla Rebirth 2)
     const rareSection = document.getElementById("rare-slots-section");
     const slotsRare = document.getElementById("slots-rare");
 
-    if (player.hasRebirth) {
+    if (player.rebirthLevel >= 1) {
         rareSection.style.display = "block";
         slotsRare.innerHTML = "";
 
-        const rareCosts = [1000, 5000, 10000];
+        const maxRareSlots = player.rebirthLevel >= 2 ? 4 : 3;
+        const rareCosts = [1000, 5000, 10000, 2000];
 
-        for(let i = 0; i < 3; i++) {
+        for(let i = 0; i < maxRareSlots; i++) {
             if(i < player.rareSlotsUnlocked){
                 const card = player.ownedCards.filter(c => c.rarity === "rzadka")[i];
 
@@ -650,7 +768,7 @@ function renderSlots() {
                             <h3>${card.name}</h3>
                             <div>⭐ Slot: Rzadki</div>
                             <div>⭐ Lvl ${card.level}</div>
-                            <div>📈 ${formatNumber(card.income)} zł / 6h</div>
+                            <div>📈 ${formatNumber(card.income)} zł / h</div>
                             <div>💰 Wartość: ${formatNumber(getCardValue(card))} zł</div>
                             <div>💸 Sprzedaż: ${formatNumber(Math.floor(getCardValue(card)/2))} zł</div>
                             ${card.level < 3 ? `
@@ -677,6 +795,59 @@ function renderSlots() {
     } else {
         rareSection.style.display = "none";
     }
+
+    // Rendowanie Epickich Slotów (Dopiero po Rebirth 2)
+    const epicSection = document.getElementById("epic-slots-section");
+    const slotsEpic = document.getElementById("slots-epic");
+
+    if (player.rebirthLevel >= 2) {
+        epicSection.style.display = "block";
+        slotsEpic.innerHTML = "";
+
+        const epicCosts = [1000, 5000, 10000];
+
+        for(let i = 0; i < 3; i++) {
+            if(i < player.epicSlotsUnlocked){
+                const card = player.ownedCards.filter(c => c.rarity === "epicka")[i];
+
+                if(card){
+                    const cardIndex = player.ownedCards.indexOf(card);
+                    let upgradeCost = card.level === 1 ? card.upgrade2Cost : card.upgrade3Cost;
+
+                    slotsEpic.innerHTML += `
+                    <div class="slot epicka">
+                        <div class="owned-card epicka ${card.level === 2 ? 'level2' : ''} ${card.level === 3 ? 'level3' : ''}">
+                            <img src="${card.image}" style="width:150px;height:200px;border-radius:6px;object-fit:cover;" onerror="this.src='https://via.placeholder.com/150x180?text=Karta'">
+                            <h3>${card.name}</h3>
+                            <div>🔮 Slot: Epicki</div>
+                            <div>⭐ Lvl ${card.level}</div>
+                            <div>📈 ${formatNumber(card.income)} zł / h</div>
+                            <div>💰 Wartość: ${formatNumber(getCardValue(card))} zł</div>
+                            <div>💸 Sprzedaż: ${formatNumber(Math.floor(getCardValue(card)/2))} zł</div>
+                            ${card.level < 3 ? `
+                            <button onclick="upgradeCard(${cardIndex})" style="background:limegreen;color:white;">
+                                ⬆️ Ulepsz (${formatNumber(upgradeCost)} zł)
+                            </button>
+                            ` : `<div style="color:gold;font-weight:bold;">⭐ MAX LVL</div>`}
+                            <button onclick="sellCard(${cardIndex})" style="background:red;color:white;">Sprzedaj</button>
+                        </div>
+                    </div>`;
+                } else {
+                    slotsEpic.innerHTML += `<div class="slot epicka"><div class="owned-card epicka"><h3>Puste miejsce</h3><div>🔮 Slot: Epicki</div></div></div>`;
+                }
+            } else {
+                let cost = epicCosts[i];
+                slotsEpic.innerHTML += `
+                <div class="slot epicka">
+                    <h3>🔒 Zablokowane</h3>
+                    <p>Koszt: ${formatNumber(cost)} złota</p>
+                    <button class="unlock-btn" onclick="unlockEpicSlot(${i})">Odblokuj</button>
+                </div>`;
+            }
+        }
+    } else {
+        epicSection.style.display = "none";
+    }
 }
 
 function unlockSlot(slotIndex){
@@ -694,7 +865,7 @@ function unlockSlot(slotIndex){
 }
 
 function unlockRareSlot(slotIndex){
-    const rareCosts = [1000, 5000, 10000];
+    const rareCosts = [1000, 5000, 10000, 2000];
     const cost = rareCosts[slotIndex];
 
     if(player.gold < cost){
@@ -708,12 +879,31 @@ function unlockRareSlot(slotIndex){
     renderAll();
 }
 
+function unlockEpicSlot(slotIndex){
+    const epicCosts = [1000, 5000, 10000];
+    const cost = epicCosts[slotIndex];
+
+    if(player.gold < cost){
+        alert("Za mało złota!");
+        return;
+    }
+
+    player.gold -= cost;
+    player.epicSlotsUnlocked++;
+    savePlayer();
+    renderAll();
+}
+
 function buyCard(index){
-    const activeShop = currentShopMode === "zwykla" ? player.shopCards : player.rareShopCards;
+    let activeShop = player.shopCards;
+    if (currentShopMode === "rzadka") activeShop = player.rareShopCards;
+    if (currentShopMode === "epicka") activeShop = player.epicShopCards;
+
     const card = activeShop[index];
 
     const normalCardsCount = player.ownedCards.filter(c => c.rarity === "zwykla").length;
     const rareCardsCount = player.ownedCards.filter(c => c.rarity === "rzadka").length;
+    const epicCardsCount = player.ownedCards.filter(c => c.rarity === "epicka").length;
 
     if (card.rarity === "zwykla" && normalCardsCount >= player.slotsUnlocked) {
         alert("Brak wolnego zwykłego miejsca!");
@@ -722,6 +912,11 @@ function buyCard(index){
 
     if (card.rarity === "rzadka" && rareCardsCount >= player.rareSlotsUnlocked) {
         alert("Brak wolnego rzadkiego miejsca!");
+        return;
+    }
+
+    if (card.rarity === "epicka" && epicCardsCount >= player.epicSlotsUnlocked) {
+        alert("Brak wolnego epickiego miejsca!");
         return;
     }
 
@@ -800,15 +995,11 @@ function collectGold(){
 
     player.ownedCards.forEach(card => {
         const now = Date.now();
-        
-        // ZMIANA 1: zmiana interwału na 1h
         const periods = Math.floor((now - card.lastCollected) / (1 * 60 * 60 * 1000));
 
         if(periods > 0){
             const earned = periods * card.income;
             total += earned;
-            
-            // ZMIANA 2: przesuwanie czasu ostatniego zbioru o wypracowane godziny
             card.lastCollected += periods * (1 * 60 * 60 * 1000);
         }
     });
@@ -846,12 +1037,22 @@ function renderAll(){
     renderShop();
     renderSlots();
 
-    // Blokowanie przycisku Rebirth po jego użyciu
+    // Wygląd i obsługa przycisku Rebirth zależnie od poziomu
     const rebirthBtn = document.getElementById("rebirth-btn");
-    if (player.hasRebirth) {
+    if (player.rebirthLevel === 0) {
+        rebirthBtn.disabled = false;
+        rebirthBtn.innerText = "🔄 Rebirth 1";
+        rebirthBtn.style.background = "#e74c3c";
+        rebirthBtn.style.cursor = "pointer";
+    } else if (player.rebirthLevel === 1) {
+        rebirthBtn.disabled = false;
+        rebirthBtn.innerText = "🔄 Rebirth 2";
+        rebirthBtn.style.background = "#9b59b6"; // fioletowy kolor
+        rebirthBtn.style.cursor = "pointer";
+    } else {
         rebirthBtn.disabled = true;
-        rebirthBtn.innerText = "✅ Rebirth wykonany";
-        rebirthBtn.style.background = "#7f8c8d"; // szary kolor
+        rebirthBtn.innerText = "✅ Max Rebirth";
+        rebirthBtn.style.background = "#7f8c8d";
         rebirthBtn.style.cursor = "not-allowed";
         rebirthBtn.style.boxShadow = "none";
     }
